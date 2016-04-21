@@ -8,6 +8,8 @@ Options:
 
  -t    affiche le temps de réponse
 
+ -l    affiche le Content-Length
+
  -h    affiche le header de la réponse
 
  -n    n'affiche pas le contenu de la page

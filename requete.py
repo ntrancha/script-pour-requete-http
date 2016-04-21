@@ -4,6 +4,7 @@ import urllib
 import urllib2
 import time
 import os, sys
+import re
 
 #User_agent par defaut
 User_agent = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
@@ -34,18 +35,26 @@ class HTTP:
 	self.cookies    = cookie		# cookie=valeur;id=42
 	self.referer    = referer
 	self.post       = post			# user=toto;pass=123
-	self.aff_time   = 0
-	self.aff_header = 0
-	self.aff_page   = 1
+	self.response   = ''			# Contenu de la page HTML
+	self.header     = ''			# Header reponse serveur
+	self.time       = -1			# Temps de la requete
+	self.error      = -1			#   1 = OK   0 = KO
+	self.length     = -1			# Taille de la requete du serveur
+	self.aff_time   =  0
+	self.aff_length =  0
+	self.aff_header =  0
+	self.aff_page   =  1
 
 
     # Envoie une requete avec les parametres precedement passe
     def get(self):
 
-	self.response = ''			# Contenu de la page HTML
-	self.header   = ''			# Header reponse serveur
-	self.time     = -1			# Temps de la requete
-	self.error    = -1			#   1 = OK   0 = KO
+	# On reinitialise les variables
+	self.response = ''
+	self.header   = ''
+	self.time     = -1
+	self.error    = -1
+	self.length   = -1
 
 	# Sort de la fonction si l'url est vide
 	if self.url == '':
@@ -63,6 +72,14 @@ class HTTP:
 	        self.time     = t.interval
 	        self.response = self.__requete.read()
 	        self.header   = self.__requete.info()
+		# Recuperation de la taille de la requete du serveur
+		decoupe = str(self.header)
+		lignes = decoupe.split("\n")
+		# On parcour le header pour trouver la ligne Content-Length
+		for var in lignes:
+		    if re.search('Content-Length*', var):
+			length_split = var.split(" ")
+			self.length = length_split[1]
 		return 1
 
 	return 0
@@ -73,12 +90,14 @@ class HTTP:
 
         # Si aucune erreurs
 	if self.error == 0:
-	    if self.aff_page == 1:
+	    if self.aff_page   == 1:
 	        print self.response	# Affiche la page sauf si -n
 	    if self.aff_header == 1:
 	        print self.header	# Affiche le header si -i
-	    if self.aff_time == 1:
+	    if self.aff_time   == 1:
 	        print self.time		# Affiche le temps si -t
+	    if self.aff_length == 1:
+	        print self.time		# Affiche la taille de la requete du serveur si -l
 
 
     def __download(self):
@@ -143,25 +162,27 @@ class HTTP:
                 num += 1
 	        if argv[num]   == '-h':
 	            self.__help()
-	        if argv[num]   == '-t' or argv[num]   == '--time':
+	        if argv[num]   == '-t' or argv[num] == '-T' or argv[num]    == '--time':
 		    self.aff_time   =     1
-	        if argv[num]   == '-i' or argv[num]   == '--info':
+	        if argv[num]   == '-i' or argv[num] == '-I' or argv[num]    == '--info':
 		    self.aff_header =     1
-	        if argv[num]   == '-n' or argv[num]   == '--no-page':
+	        if argv[num]   == '-l' or argv[num] == '-L' or argv[num]    == '--length':
+		    self.aff_length =     1
+	        if argv[num]   == '-n' or argv[num] == '-N'  or argv[num]   == '--no-page':
 		    self.aff_page   =     0
-		if argv[num-1] == '-c' or argv[num-1] == '--cookies':
+		if argv[num-1] == '-c' or argv[num] == '-C'  or argv[num-1] == '--cookies':
 		    self.cookies    =     argv[num]
-		if argv[num-1] == '-r' or argv[num-1] == '--referer':
+		if argv[num-1] == '-r' or argv[num] == '-R'  or argv[num-1] == '--referer':
 		    self.referer    =     argv[num]
-		if argv[num-1] == '-u' or argv[num-1] == '--user_agent':
+		if argv[num-1] == '-u' or argv[num] == '-U'  or argv[num-1] == '--user_agent':
 		    self.user_agent =     argv[num]
-		if argv[num-1] == '-p' or argv[num-1] == '--post-variables':
-		    self.param      =     argv[num]
+		if argv[num-1] == '-p' or argv[num] == '-P'  or argv[num-1] == '--post-variables':
+		    self.post       =     argv[num]
 
 
     # Affiche l'aide
     def __help(self):
-	print 'python',sys.argv[0],'[URL] "User:user_agent" "Var:Variable_post=valeur;id=42" "Ref:referer.com" "Cookie:id=42&n=1" -i -t'
+	print 'python',sys.argv[0],'[URL] -u "User_agent" -t -h'
 	sys.exit(0)
 
 
@@ -180,7 +201,7 @@ if __name__ == '__main__':
     	requete.url        = 'http://perdu.com'			# URL
     	requete.referer    = 'site.com' 			# REFERER
     	requete.user_agent = 'iphone9' 				# USER_AGENT
-    	requete.post       = 'test=42;test2=jfk;cookie=1239083'	# POST
+    	requete.post       = 'test=42;test2=jfk;id=1239083'	# POST
     	requete.cookies    = 'cookie1=test;cookie2=pass'	# COOKIES
 
 	# On envoi la requete et on verifie si elle n'a pas rencontre d'erreur
@@ -189,5 +210,6 @@ if __name__ == '__main__':
 		print requete.header
 		print requete.response
 		print requete.time
+		print requete.length
 
     sys.exit(0)
