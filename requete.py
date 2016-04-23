@@ -35,7 +35,7 @@ class HTTP:
 	self.cookies    = cookie		# cookie=valeur;id=42
 	self.referer    = referer
 	self.post       = post			# user=toto;pass=123
-	self.response   = ''			# Contenu de la page HTML
+	self.content	= ''			# Contenu de la page HTML
 	self.header     = ''			# Header reponse serveur
 	self.time       = -1			# Temps de la requete
 	self.error      = -1			#   1 = OK   0 = KO
@@ -45,12 +45,68 @@ class HTTP:
 	self.aff_header =  0
 	self.aff_page   =  1
 
+    def url_check(self):
+	# Rajout de http:// si absent de l'url ou du referer
+	if self.url	!= '' and self.url[:7]     != 'http://':
+	    self.url	 = 'http://'  +self.url
+	if self.referer != '' and self.referer[:7] != 'http://':
+	    self.referer = 'http://' + self.referer
+
+
+    def referer_default(self):
+	# Si aucun referer n'est parametre, la racine du site et prise par defaut
+        host = self.url.split('/')
+        self.referer = "http://" + host[2]
+
+    def request(self, kwargs):
+	if len(kwargs) < 1:
+	    return {}
+	if kwargs.get('url'):
+	    self.url = kwargs.get('url', None)
+	    self.url_check()
+	    if kwargs.get('user_agent'):
+		self.user_agent = kwargs.get('user_agent', None)
+	    else:
+		self.user_agent = User_agent
+	    if kwargs.get('referer'):
+		self.referer = kwargs.get('referer', None)
+	    else:
+		self.referer_default()
+	    if kwargs.get('cookies'):
+		self.cookies = kwargs.get('cookies', None)
+	    else:
+		self.cookies = ''
+	    if kwargs.get('post'):
+		self.post = kwargs.get('post', None)
+	    else:
+		self.post = ''
+	    if kwargs.get('time'):
+		self.aff_time = kwargs.get('time', None)
+	    else:
+		self.aff_time = 0
+	    if kwargs.get('length'):
+		self.aff_length = kwargs.get('length', None)
+	    else:
+		self.aff_length = 0
+	    if kwargs.get('header'):
+		self.aff_header = kwargs.get('header', None)
+	    else:
+		self.aff_header = 0
+	    if kwargs.get('content') and kwargs.get('content') == '0':
+		self.aff_page = 0
+	    else:
+		self.aff_page = 1
+	    if self.get():
+       	    	self.display()
+		return ({'time':self.time,'length':self.length,'header':self.header,'content':self.content})
+	    return {}
+
 
     # Envoie une requete avec les parametres precedement passe
     def get(self):
 
 	# On reinitialise les variables
-	self.response = ''
+	self.content  = ''
 	self.header   = ''
 	self.time     = -1
 	self.error    = -1
@@ -59,6 +115,8 @@ class HTTP:
 	# Sort de la fonction si l'url est vide
 	if self.url == '':
 	    return 0
+	# Verification de l'url
+	self.url_check()
 
 	# Lancement du timer
         try:
@@ -70,7 +128,7 @@ class HTTP:
 	    if self.error == 0:
 		# Recuperation: timer, header et contenu de la page HTML
 	        self.time     = t.interval
-	        self.response = self.__requete.read()
+	        self.content  = self.__requete.read()
 	        self.header   = self.__requete.info()
 		# Recuperation de la taille de la requete du serveur
 		decoupe = str(self.header)
@@ -91,13 +149,13 @@ class HTTP:
         # Si aucune erreurs
 	if self.error == 0:
 	    if self.aff_page   == 1:
-	        print self.response	# Affiche la page sauf si -n
+	        print self.content	# Affiche la page sauf si -n
 	    if self.aff_header == 1:
 	        print self.header	# Affiche le header si -i
 	    if self.aff_time   == 1:
 	        print self.time		# Affiche le temps si -t
 	    if self.aff_length == 1:
-	        print self.time		# Affiche la taille de la requete du serveur si -l
+	        print self.length	# Affiche la taille de la requete du serveur si -l
 
 
     def __download(self):
@@ -176,7 +234,7 @@ class HTTP:
 		    self.referer    =     argv[num]
 		if argv[num-1] == '-u' or argv[num] == '-U'  or argv[num-1] == '--user_agent':
 		    self.user_agent =     argv[num]
-		if argv[num-1] == '-p' or argv[num] == '-P'  or argv[num-1] == '--post-variables':
+		if argv[num-1] == '-p' or argv[num] == '-P'  or argv[num-1] == '--post':
 		    self.post       =     argv[num]
 
 
@@ -189,6 +247,7 @@ class HTTP:
 
 if __name__ == '__main__':
 
+    # Initialisation
     requete = HTTP()
 
     # Si les parametres sont passes en argument
@@ -198,18 +257,19 @@ if __name__ == '__main__':
        	    requete.display()
     else:
 	# Exemple
-    	requete.url        = 'http://perdu.com'			# URL
-    	requete.referer    = 'site.com' 			# REFERER
-    	requete.user_agent = 'iphone9' 				# USER_AGENT
-    	requete.post       = 'test=42;test2=jfk;id=1239083'	# POST
-    	requete.cookies    = 'cookie1=test;cookie2=pass'	# COOKIES
-
-	# On envoi la requete et on verifie si elle n'a pas rencontre d'erreur
-    	if requete.get() == 1:
-		# On affiche le header de la requete, le contenu de la page et le temps de la requete
-		print requete.header
-		print requete.response
-		print requete.time
-		print requete.length
-
+	requete.request({'url'     : 'perdu.com',		# URL
+		         'header'  :  0,			# AFFICHE LE HEADER		DE LA REQUETE SERVEUR
+		     	 'time'    :  0,			# AFFICHE DU TEMPS DE REPONSE	DE LA REQUETE SERVEUR
+		     	 'length'  :  0,			# AFFICHE LA TAILLE DU CONTENU	DE LA REQUETE SERVEUR
+		     	 'content' : '0',			# AFFICHE LE CONTENU		DE LA REQUETE SERVEUR
+		     	 'referer' : 'http://toto.fr',		# CHANGE LE REFERER		DANS LA REQUETE CLIENT
+		     	 'agent'   : 'iphone',			# CHANGE L USER AGENT		DANS LA REQUETE CLIENT
+		     	 'cookies' : 'var=42;var2=toto',	# AJOUTE DES COOKIES		DANS LA REQUETE CLIENT
+		     	 'post'    : 'var=42;var2=toto'})	# AJOUTE DES AVARIABLES POST	DANS LA REQUETE CLIENT
+        if requete.error == 0:
+	    print requete.content
+	    print requete.header
+	    print requete.time
+	    print requete.length
+        sys.exit(0)
     sys.exit(0)
