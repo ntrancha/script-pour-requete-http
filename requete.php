@@ -11,20 +11,34 @@
 #                                                                              #
 # **************************************************************************** #
 
-$eof = "\r\n";
+$eof  = "\r\n";
+$code = "";
+$file = "";
 
 $test = 0;
 while ($test <= $argc){
 	if (isset($argv[$test]) AND ($argv[$test] == "-H" OR $argv[$test] == "-h" OR $argv[$test] == "--help"))
 	{
-		echo "Usage : php requete.php [URL] [OPTION] [VALEUR]...\n"
+		echo "Usage CLI : php requete.php [URL] [OPTIONS] [VALEURS]...\n"
 		."Options :\n"
-		."-P ou --post       : variable(s) post\n"
-		."-C ou --cookie     : variable(s) cookie\n"
-		."-R ou --referer    : referer\n"
-		."-U ou --user-agent : user-agent\n"
-		."-L ou --list       : liste des user-agent\n\n"
-		."exemple : php requete.php  \"http://site.com/index.php?id=42\" -P data:1;var:2 -C phpessid:md5;session:1234\n";
+		." -F ou --file       : requete depuis un fichier\n"
+		." -P ou --post       : variable(s) post\n"
+		." -C ou --cookie     : variable(s) cookie\n"
+		." -R ou --referer    : referer\n"
+		." -U ou --user-agent : user-agent\n"
+		." -L ou --list       : liste des user-agent classiques\n"
+		."Exemple : php requete.php  \"http://site.com/index.php?id=42\" -P \"data:1;var:2\" -C \"phpessid:md5;session:1234\"\n\n\n"
+		."Usage WEB : http://.../requete.php?[URL][OPTIONS][VARIABLE_GET]...\n"
+		."Options :\n"
+		." url$code                : URL\n"
+		." referer$code            : referer\n"
+		." user-agent$code         : user-agent\n"
+		."Exemple : http://.../requete.php?url$code=http://google.fr&referer$code=http://google.fr&user-agent$code=firefox&get-data=42&id=12\n\n\n"
+		."Usage Brute-force CLI : php requete.php [URL] --brute-force-get [DICO] [VARIABLE_GET]  [OPTIONS] [VALEURS]...\n"
+		."Options :\n"
+		." --brute-force-get  : brute force une variable GET\n"
+		." --brute-force-post : brute force une variable POST\n"
+		."Exemple : php requete.php  \"http://site.com/index.php?id=42\" --brute-force-get \"dico.txt\" \"id\" -C \"page:42;user:admin\"\n";
 		exit;
 	}
 	$test++;
@@ -54,6 +68,52 @@ Mozilla/5.0 (Windows NT 5.1; rv:5.0.1) Gecko/20100101 Firefox/5.0.1
 Mozilla/5.0 (Windows NT 6.1; rv:5.0) Gecko/20100101 Firefox/5.02
 Mozilla/5.0 (Windows NT 6.0) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.112 Safari/535.1
 Mozilla/4.0 (compatible; MSIE 6.0; MSIE 5.5; Windows NT 5.0) Opera 7.02 Bork-edition [en]\n";
+		exit;
+	}
+	$test++;
+}
+
+// Requete depuis un fichier
+$test = 0;
+while ($test <= $argc){
+	if (isset($argv[$test]) AND ($argv[$test] == "-F" OR $argv[$test] == "-f" OR $argv[$test] == "--file") AND $test + 1 <= $argc)
+	{
+		$file = $argv[$test + 1];
+		if (!is_file($file)){
+			echo "Fichier invalide ($file)\n";
+			exit;
+		}
+		$requete = file($file);
+		$link = "/";
+		$header = "";
+		foreach ($requete as $num => $line){
+			if (preg_match("#HTTP#", $line) OR preg_match("#Host: #", $line)){
+				if (preg_match("#HTTP#", $line)){
+					$tmp = explode(" ",$line);
+					$link = $tmp[1];
+				}
+				if (preg_match("#Host: #", $line)){
+					$tmp = str_replace('
+', '', explode(" ",$line));
+					$url = "http://".$tmp[1].$link;
+				}
+			}elseif(!preg_match("#Accept-Encoding: #", $line)){ // Non prise en compte de l'encodage
+				$header .= $line;
+			}
+		}
+		$content = file_get_contents(
+		    $url,
+		    FALSE,
+		    stream_context_create(
+			array(
+			    'http' => array(
+				'method' => 'POST',
+				'header' => $header
+			    )
+			)
+		    )
+		);
+		echo $content;
 		exit;
 	}
 	$test++;
@@ -98,7 +158,7 @@ function get_get($arr, $url){
 	$test = 0;
 	if (!isset($argv[0])){
 		foreach ($arr["_GET"] as $key => $value){
-			if ($key != "url" AND $key != "referer" AND $key != "user-agent"){
+			if ($key != "url".$code AND $key != "referer".$code AND $key != "user-agent".$code){
 				if ($test != 0){
 					$return .= "&";
 				}else{
@@ -172,7 +232,7 @@ if (!isset($argv[0])){
 }
 
 
-if ((isset($_GET["url"]) AND $_GET["url"] != "") OR (isset($argv[0]) AND $argv[0] != ""))
+if ((isset($_GET["url".$code]) AND $_GET["url".$code] != "") OR (isset($argv[0]) AND $argv[0] != ""))
 {
 	if (isset($argv[0]) AND $argv[0] != ""){
 		if (isset($argv[1]) AND $argv[1] != ""){
@@ -189,17 +249,17 @@ if ((isset($_GET["url"]) AND $_GET["url"] != "") OR (isset($argv[0]) AND $argv[0
 
 	}else{
 		// PROXY
-		$url     = verif_url($_GET["url"]);
+		$url     = verif_url($_GET["url".$code]);
 		$cookie  = get_cookies($arr, "", "");
 		$url     = get_get($arr, $url);
-		$post    = $arr["_POST"];
-		if (isset($_GET["referer"]) AND $_GET['referer'] != ""){
-			$referer = $_GET["referer"]."\r\n";
+		$post 	 = http_build_query($arr["_POST"]);
+		if (isset($_GET["referer".$code]) AND $_GET["referer".$code] != ""){
+			$referer = $_GET["referer".$code]."\r\n";
 		}else{
 			$referer = "";
 		}
-		if (isset($_GET["user-agent"]) AND $_GET['user-agent'] != ""){
-			$useragent = $_GET["user-agent"]."\r\n";
+		if (isset($_GET["user-agent".$code]) AND $_GET["user-agent".$code] != ""){
+			$useragent = $_GET["user-agent".$code]."\r\n";
 		}else{
 			$useragent = "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0\r\n";
 		}
@@ -208,12 +268,6 @@ if ((isset($_GET["url"]) AND $_GET["url"] != "") OR (isset($argv[0]) AND $argv[0
 	// DUMP
 	echo $log;
 	exit;
-}
-
-if (is_array($post)){
-	$data = http_build_query($post);
-}else{
-	$data = $post;
 }
 
 
@@ -233,7 +287,7 @@ $content = file_get_contents(
 				."Content-Length: ".strlen($data).$eof
 				.$cookie
 			    ,
-                'content' => $data
+                'content' => $post
             )
         )
     )
