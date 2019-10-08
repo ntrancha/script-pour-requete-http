@@ -73,7 +73,10 @@ function get_param_cli($argc, $argv){
 		);
 	
 	// Création de la liste des options utilisées avec leurs paramètres
-	$options = array_fill_keys($list, "");
+	$options = array();
+	foreach ($list as $key => $value){
+		$options[$key] = "";
+	}
 
 	// Récupération des paramètres
 	$count = 1;
@@ -183,8 +186,12 @@ function send_requete($url, $context){
 	return (file_get_contents($url, FALSE, stream_context_create(array('http' => array($context)))));
 }
 
-//$options = get_param_cli($argc, $argv);
-var_dump(get_param_web(get_defined_vars()));
+// Récupération des options CLI || WEB
+if (is_cli()){
+	$options = get_param_cli($argc, $argv);
+}else{
+	$options = get_param_web(get_defined_vars());
+}
 
 
 ?>
