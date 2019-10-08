@@ -24,22 +24,33 @@ function is_cli(){
 
 function get_param_web($var){
 
-	//
-	$server	= $var["_SERVER"];
-	$post	= $var["_POST"];
+	// Récupération des variables
 	$get	= $var["_GET"];
-	$cookie	= $var["_COOKIE"];
+	$list	= array("link", "method", "get", "post", "cookie", "referer", "user-agent");
+	$list	= array_fill_keys($list, "");
+
 	if (isset($var["_SERVER"]["HTTP_USER_AGENT"])){
-		$user_agent = $var["_SERVER"]["HTTP_USER_AGENT"];
-	}else{
-		$user_agent = "";
+		$list["user-agent"] = $var["_SERVER"]["HTTP_USER_AGENT"];
 	}
 	if (isset($var["_SERVER"]["HTTP_REFERER"])){
-		$referer = $var["_SERVER"]["HTTP_REFERER"];
-	}else{
-		$referer = "";
+		$list["referer"] = $var["_SERVER"]["HTTP_REFERER"];
 	}
 
+	$list["cookie"] = http_build_query($var["_COOKIE"], "", ";");
+	$list["post"]   = http_build_query($var["_POST"], "", ";");
+	$list["method"] = $var["_SERVER"]["REQUEST_METHOD"];
+
+	foreach ($get as $key => $value){
+		$test = 0;
+		foreach ($list as $k => $v){
+			if ($k == $key){
+				$list[$key] = $value;
+				unset($get[$key]);
+			}
+		}
+	}
+	$list["get"] = http_build_query($get); 
+	return ($list);
 }
 
 function get_param_cli($argc, $argv){
@@ -49,6 +60,7 @@ function get_param_cli($argc, $argv){
 			"link"		        => 1,  		//	url
 			"file"		        => 1,   	//	path
 			"output"	        => 1,   	//	path
+			"method"        	=> 1,   	//	data
 			"post"	        	=> 1,   	//	data
 			"get"       		=> 1,   	//	data
 			"cookie"	        => 1,   	//	data
@@ -61,10 +73,7 @@ function get_param_cli($argc, $argv){
 		);
 	
 	// Création de la liste des options utilisées avec leurs paramètres
-	$options = $list;
-	foreach ($options as $val => $param){
-		$options[$val] = "";
-	}
+	$options = array_fill_keys($list, "");
 
 	// Récupération des paramètres
 	$count = 1;
@@ -174,8 +183,8 @@ function send_requete($url, $context){
 	return (file_get_contents($url, FALSE, stream_context_create(array('http' => array($context)))));
 }
 
-$options = get_param_cli($argc, $argv);
-get_param_web(get_defined_vars());
+//$options = get_param_cli($argc, $argv);
+var_dump(get_param_web(get_defined_vars()));
 
 
 ?>
