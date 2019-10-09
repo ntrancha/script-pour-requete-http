@@ -7,9 +7,14 @@
 #    By: ntrancha <ntrancha@student.42.fr>          +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2019/07/10 10:51:33 by ntrancha          #+#    #+#              #
-#    Updated: 2019/08/10 18:21:02 by ntrancha         ###   ########.fr        #
+#    Updated: 2019/09/10 10:21:02 by ntrancha         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
+
+function erreur($msg){
+	echo "$msg\n";
+	exit;
+}
 
 function search($pattern, $var){
 	return (preg_match("#".$pattern."#", $var));
@@ -117,11 +122,12 @@ function get_param_cli($argc, $argv){
 						}
 
 						if (is_array($options[$valeur])){
-							echo "Erreur: Paramètre déjà utilisé (".$argv[$count].")\n";
-							exit;
+							erreur("Erreur: Paramètre déjà utilisé (".$argv[$count].")");
 						}else{
 							if (count($content) == 1){
 								$options[$valeur] = $content[0];
+							}elseif (count($content) == 0){
+								$options[$valeur] = 1;
 							}else{
 								$options[$valeur] = $content;
 							}
@@ -129,14 +135,12 @@ function get_param_cli($argc, $argv){
 					}
 				}
 
-			if ($param_valide == 0){
+				if ($param_valide == 0){
 					// Paramètre invalide
-					echo "Erreur: Paramètre non reconnu (".$argv[$count].")\n";
-					exit;
+					erreur("Erreur: Paramètre non reconnu (".$argv[$count].")");
 				}
 			}else{
-				echo "Erreur: Paramètre non reconnu (".$argv[$count].")\n";
-				exit;
+				erreur("Erreur: Paramètre non reconnu (".$argv[$count].")");
 			}
 		}
 		$count++;
@@ -153,12 +157,10 @@ function requete_from_file_erreur($path_file, $line, $num){
 function requete_from_file($options){
 
 	if (!isset($options) OR !is_array($options) OR !isset($options["file"])){
-		echo "Erreur: arguments de la fonction requete_from_file() invalide\n";
-		exit;
+		erreur("Erreur: arguments de la fonction requete_from_file() invalide");
 	}
 	if (!is_file($options["file"])){
-		echo "Erreur: Fichier introuvable (".$options["file"].")\n";
-		exit;
+		erreur("Erreur: Fichier introuvable (".$options["file"].")");
 	}
 
 	$file_content	= file($options["file"]);
@@ -212,8 +214,7 @@ function requete_from_file($options){
 
 function verif_url($url){
 	if (filter_var($url, FILTER_VALIDATE_URL) === FALSE) {
-		echo "Erreur: invalid URL ($url)\n";
-		exit;
+		erreur("Erreur: invalid URL ($url)");
 	}
 	return ($url);
 }
@@ -225,8 +226,7 @@ function requete_context($method, $header, $content){
 
 		// METHOD //
 	if ($method == ""){
-		echo "Erreur: method invalide\n";
-		exit;
+		erreur("Erreur: method invalide");
 	}
 	if (!array_key_exists($list_mehtod, $method)){
 		echo "Avertissement: method \"$method\" inconnu\n";
@@ -235,15 +235,13 @@ function requete_context($method, $header, $content){
 
 		// HEADER //
 	if ($header == ""){
-		echo "Erreur: Header invalide\n";
-		exit;
+		errueur("Erreur: Header invalide");
 	}
 	array_push($context['header'], $header);
 
 		// CONTENT //
 	if ($method == "POST" AND $content == ""){
-		echo "Erreur: Content manquant\n";
-		exit;
+		erreur("Erreur: Content manquant");
 	}
 	if ($content != ""){
 		array_push($context['content'], $content);
@@ -254,10 +252,56 @@ function requete_context($method, $header, $content){
 
 function send_requete($url, $context){
 	if (verif_url($url) == "" OR !is_array($content) OR empty($content)){
-		echo "Erreur: Context invalide\n";
-		exit;
+		erreur("Erreur: Context invalide");
 	}
 	return (file_get_contents($url, FALSE, stream_context_create(array('http' => array($context)))));
+}
+
+function setup_method($options){
+	if (!isset($options) OR !isset($options["method"])){
+		erreur("Erreur: fonction setup_method()");
+	}
+	if ($options["method"] == ""){
+		if (isset($options["content"]) AND $options["content"] != ""){
+			$options["method"] = "POST";
+		}else{
+			$options["method"] = "GET";
+		}
+	}
+}
+
+function get_host($url){
+	$tmp = explode('/', $url);
+	return ($tmp[0]."//".$tmp[2]);
+}
+
+function get_path($url){
+	$tmp = explode('/', $url);
+	$path = "";
+	foreach ($tmp as $num => $valeur){
+		$path .= "/".$valeur;
+	}
+	return ($path);
+}
+
+function build_requete($options){
+	$eof = "\r\n";
+	$raw_requete  = $options["method"]." ".get_path($options["link"]). "HTTP/1.1".$eof;
+	$raw_requete .= "Host: ".get_host($options["link"]).$eof;
+	if (isset($options["header"]) AND $options["header"]){
+		$raw_requete .= $options["header"];
+	}else{
+		$raw_requete .= "Content-type: application/x-www-form-urlencoded".$eof;
+		$raw_requete .= "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".$eof;
+		$raw_requete .= "Accept-Language: en-US,en;q=0.5".$eof;
+		if (isset($options["user-agent"]) AND $options["user-agent"] != ""){
+			$raw_requete .= "User-agent".$options["user-agent"].$eof;
+		}
+		if (isset($options["referer"]) AND $options["referer"] != ""){
+			$raw_requete .= "Referer".$options["referer"].$eof;
+		}
+	}
+	return ($raw_requete);
 }
 
 // Récupération des options CLI || WEB
@@ -267,5 +311,14 @@ if (is_cli()){
 	$options = get_param_web(get_defined_vars());
 }
 
-var_dump(requete_from_file($options));
+if (isset($options["file"]) && $options["file"] != ""){
+	$options = requete_from_file($options);
+}
+setup_method($options);
+if (isset($options["display"]) AND $options["display"] == 1){
+	echo build_requete($options);
+}
+
+var_dump($options);
+// brute-force output display exit help
 ?>
