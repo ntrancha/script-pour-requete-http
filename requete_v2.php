@@ -262,7 +262,25 @@ function output_requete($options){
 	fclose($file);
 }
 
-
+function debug($vars){
+	echo "SERVER\n";
+	foreach ($vars["_SERVER"] as $key => $value){
+		echo "$key => $value\n";
+	}
+	echo "\nGET\n";
+	foreach ($vars["_GET"] as $key => $value){
+		echo "$key => $value\n";
+	}
+	echo "\nPOST\n";
+	foreach ($vars["_POST"] as $key => $value){
+		echo "$key => $value\n";
+	}
+	echo "\nCOOKIE\n";
+	foreach ($vars["_COOKIE"] as $key => $value){
+		echo "$key => $value\n";
+	}
+	exit;
+}
 
 # **************************************************************************** #
 # ********************************   REQUETE   ******************************* #
@@ -336,6 +354,11 @@ if (is_cli()){
 	$options = get_param_web(get_defined_vars());
 }
 
+// DEBUG
+if (isset($options["link"]) AND $options["link"] == ""){
+	debug(get_defined_vars());
+}
+
 // Récupération de la requete depuis un fichier
 if (isset($options["file"]) && $options["file"] != ""){
 	$options = requete_from_file($options);
@@ -359,6 +382,9 @@ if (isset($options["exit"]) AND $options["exit"] == 1){
 	exit;
 }
 
+// Envoi de la requete
+//send_requete($options["link"], requete_context($options["method"], ));
+
 var_dump($options);
-// a dev => brute-force / help / envoie requete / drop
+// a dev => brute-force / help / envoie requete
 ?>
