@@ -11,6 +11,10 @@
 #                                                                              #
 # **************************************************************************** #
 
+function search($pattern, $var){
+	return (preg_match("#".$pattern."#", $var));
+}
+
 function is_cli(){
 
 	// Vérification de l'invocation	en CLI
@@ -116,12 +120,16 @@ function get_param_cli($argc, $argv){
 							echo "Erreur: Paramètre déjà utilisé (".$argv[$count].")\n";
 							exit;
 						}else{
-							$options[$valeur] = $content;
+							if (count($content) == 1){
+								$options[$valeur] = $content[0];
+							}else{
+								$options[$valeur] = $content;
+							}
 						}
 					}
 				}
 
-				if ($param_valide == 0){
+			if ($param_valide == 0){
 					// Paramètre invalide
 					echo "Erreur: Paramètre non reconnu (".$argv[$count].")\n";
 					exit;
@@ -133,6 +141,72 @@ function get_param_cli($argc, $argv){
 		}
 		$count++;
 	}
+	return ($options);
+}
+
+function requete_from_file_erreur($path_file, $line, $num){
+	echo "Erreur: requete invalide dans le fichier ($path_file) ligne:$num\n";
+	echo "$line";
+	exit;
+}
+
+function requete_from_file($options){
+
+	if (!isset($options) OR !is_array($options) OR !isset($options["file"])){
+		echo "Erreur: arguments de la fonction requete_from_file() invalide\n";
+		exit;
+	}
+	if (!is_file($options["file"])){
+		echo "Erreur: Fichier introuvable (".$options["file"].")\n";
+		exit;
+	}
+
+	$file_content	= file($options["file"]);
+	$link		= "";
+	$method		= "";
+	$header		= "";
+	$content	=  0;
+
+	foreach ($file_content as $num => $line){
+		if ($num == 0){
+			if (!search("HTTP", $line) AND !search("http", $line) AND !search(" ", $line)){
+				requete_from_file_erreur($options["file"], $line, $num);
+			}
+			$tmp = explode(" ", $line);
+			if (!isset($tmp[1])){
+				requete_from_file_erreur($options["file"], $line, $num);
+			}
+			$method = $tmp[0];
+			$path   = $tmp[1];
+		}elseif ($num == 1){
+			if (!search("Host: ", $line)){
+				requete_from_file_erreur($options["file"], $line, $num);
+			}
+			$tmp = explode(" ", $line);
+			if (!isset($tmp[1])){
+				requete_from_file_erreur($options["file"], $line, $num);
+			}
+			if (!search("http://", $tmp[1])){
+				$link = "http://";
+			}
+			$link .= str_replace(CHR(10), '', $tmp[1]).$path;
+		}elseif (!search("Accept-Encoding: ", $line)){	// Non prise en compte de l'encodage
+			if ($line == CHR(10)){
+				$content = 1;
+			}else{
+				if ($content == 0){
+					$header .= $line;
+				}else{
+					$content = str_replace(CHR(10), '', $line);
+				}
+			}
+		}
+	}
+
+	$options["link"]   = $link;
+	$options["method"] = $method;
+	$options["header"] = $header;
+	$options["post"]   = $content;
 	return ($options);
 }
 
@@ -193,5 +267,5 @@ if (is_cli()){
 	$options = get_param_web(get_defined_vars());
 }
 
-
+var_dump(requete_from_file($options));
 ?>
