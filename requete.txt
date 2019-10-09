@@ -6,9 +6,9 @@ Accept-Language: en-US,en;q=0.5
 Accept-Encoding: gzip, deflate, br
 Referer: https://github.com/ntrancha?tab=repositories
 Connection: keep-alive
-Cookie: logged_in=no; _octo=GH1.1.825015967.1570321018; _gh_sess=Njd5T3IxL0hOYWZhRUY5YnY5YkZCeG5FYzY0Q2ZZWHhTUTZoT1h6RlZqZ1dsZFd1eXc5Mjg5ekY0YlhwVUhwZjRSaHlQMVNzbDRnN25hanU3WUVGWVNPUit2VCtPMGVldE5EZFJPZGF2d3h2OVZsTVJIYS9mMUtrVEZjRWRlSEIwL2NvSEhaaVAwdng2a08rUWV6YTVOeDVVeUNHdkdYYWtraXZVNDA4ZEVQeFE4aWVTRlBvNDMxWXhTTm82bzZlblJEdWxtclprdmtZelRXTmZBSDByQlhDRVQ1cjZYbWtDTGdMNFoxT1o2RkNDLzIzaFAxZVlTQjhKajEyUmJkMWNJSXJYbzB6SE16SnZIYTBBbVZJYzc4SllQS2xxSHdaOGp5bEYxZkFFb2xHcDRzNFB1Mnh3bUVtQmlOSlArMUUtLUJ2bzVuR3J0R2FKU0dmdWhDTE02R0E9PQ%3D%3D--73f1fb8c8794b021a4257ff368827920be582b3f; _ga=GA1.2.699627581.1570321020; tz=Europe%2FParis
+Cookie: logged_in=no; _octo=GH1.1.825015967.1570321018;; _ga=GA1.2.6997581.15721020; tz=Europe%2FParis
 Upgrade-Insecure-Requests: 1
-If-None-Match: W/"16ac3e70feedb23d98c8d552a4d79741"
+If-None-Match: W/"16ac3e70feedb23d98c8d552a4d7941"
 Cache-Control: max-age=0
 
 test:data;id=42
