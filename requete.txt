@@ -8,7 +8,7 @@ Referer: https://github.com/ntrancha?tab=repositories
 Connection: keep-alive
 Cookie: logged_in=no; _octo=GH1.1.825015967.1570321018;; _ga=GA1.2.6997581.15721020; tz=Europe%2FParis
 Upgrade-Insecure-Requests: 1
-If-None-Match: W/"16ac3e70feedb23d98c8d552a4d7941"
+If-None-Match: W/"16ac3e70feedb23d98c8d552a4d741"
 Cache-Control: max-age=0
 
 test:data;id=42
