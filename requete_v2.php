@@ -20,6 +20,10 @@ function search($pattern, $var){
 	return (preg_match("#".$pattern."#", $var));
 }
 
+# **************************************************************************** #
+# *******************************  PARAMETRES  ******************************* #
+# **************************************************************************** #
+
 function is_cli(){
 
 	// Vérification de l'invocation	en CLI
@@ -148,6 +152,11 @@ function get_param_cli($argc, $argv){
 	return ($options);
 }
 
+
+# **************************************************************************** #
+# *******************************   OPTIONS   ******************************** #
+# **************************************************************************** #
+
 function requete_from_file_erreur($path_file, $line, $num){
 	echo "Erreur: requete invalide dans le fichier ($path_file) ligne:$num\n";
 	echo "$line";
@@ -212,63 +221,6 @@ function requete_from_file($options){
 	return ($options);
 }
 
-function verif_url($url){
-	if (filter_var($url, FILTER_VALIDATE_URL) === FALSE) {
-		erreur("Erreur: invalid URL ($url)");
-	}
-	return ($url);
-}
-
-function requete_context($method, $header, $content){
-
-	$context	= array();
-	$list_method	= array("GET", "POST", "PUT", "HEAD", "DELETE", "PATCH", "OPTIONS");
-
-		// METHOD //
-	if ($method == ""){
-		erreur("Erreur: method invalide");
-	}
-	if (!array_key_exists($list_mehtod, $method)){
-		echo "Avertissement: method \"$method\" inconnu\n";
-	}
-	array_push($context['method'], $method);
-
-		// HEADER //
-	if ($header == ""){
-		errueur("Erreur: Header invalide");
-	}
-	array_push($context['header'], $header);
-
-		// CONTENT //
-	if ($method == "POST" AND $content == ""){
-		erreur("Erreur: Content manquant");
-	}
-	if ($content != ""){
-		array_push($context['content'], $content);
-	}
-	return ($context);
-}
-
-
-function send_requete($url, $context){
-	if (verif_url($url) == "" OR !is_array($content) OR empty($content)){
-		erreur("Erreur: Context invalide");
-	}
-	return (file_get_contents($url, FALSE, stream_context_create(array('http' => array($context)))));
-}
-
-function setup_method($options){
-	if (!isset($options) OR !isset($options["method"])){
-		erreur("Erreur: fonction setup_method()");
-	}
-	if ($options["method"] == ""){
-		if (isset($options["content"]) AND $options["content"] != ""){
-			$options["method"] = "POST";
-		}else{
-			$options["method"] = "GET";
-		}
-	}
-}
 
 function get_host($url){
 	$tmp = explode('/', $url);
@@ -304,6 +256,79 @@ function build_requete($options){
 	return ($raw_requete);
 }
 
+function output_requete($options){
+	$file = fopen($options["output"], "w+");
+	fputs($file, build_requete($options));
+	fclose($file);
+}
+
+
+
+# **************************************************************************** #
+# ********************************   REQUETE   ******************************* #
+# **************************************************************************** #
+
+function verif_url($url){
+	if (filter_var($url, FILTER_VALIDATE_URL) === FALSE) {
+		erreur("Erreur: invalid URL ($url)");
+	}
+	return ($url);
+}
+
+function setup_method($options){
+	if (!isset($options) OR !isset($options["method"])){
+		erreur("Erreur: fonction setup_method()");
+	}
+	if ($options["method"] == ""){
+		if (isset($options["content"]) AND $options["content"] != ""){
+			$options["method"] = "POST";
+		}else{
+			$options["method"] = "GET";
+		}
+	}
+}
+
+function requete_context($method, $header, $content){
+
+	$context	= array();
+	$list_method	= array("GET", "POST", "PUT", "HEAD", "DELETE", "PATCH", "OPTIONS");
+
+		// METHOD //
+	if ($method == ""){
+		erreur("Erreur: method invalide");
+	}
+	if (!array_key_exists($list_mehtod, $method)){
+		echo "Avertissement: method \"$method\" inconnu\n";
+	}
+	array_push($context['method'], $method);
+
+		// HEADER //
+	if ($header == ""){
+		errueur("Erreur: Header invalide");
+	}
+	array_push($context['header'], $header);
+
+		// CONTENT //
+	if ($method == "POST" AND $content == ""){
+		erreur("Erreur: Content manquant");
+	}
+	if ($content != ""){
+		array_push($context['content'], $content);
+	}
+	return ($context);
+}
+
+function send_requete($url, $context){
+	if (verif_url($url) == "" OR !is_array($content) OR empty($content)){
+		erreur("Erreur: Context invalide");
+	}
+	return (file_get_contents($url, FALSE, stream_context_create(array('http' => array($context)))));
+}
+
+# **************************************************************************** #
+# *******************************     MAIN     ******************************* #
+# **************************************************************************** #
+
 // Récupération des options CLI || WEB
 if (is_cli()){
 	$options = get_param_cli($argc, $argv);
@@ -311,14 +336,29 @@ if (is_cli()){
 	$options = get_param_web(get_defined_vars());
 }
 
+// Récupération de la requete depuis un fichier
 if (isset($options["file"]) && $options["file"] != ""){
 	$options = requete_from_file($options);
 }
+
+// Attribu ou vérifi la method
 setup_method($options);
+
+// Affiche la requete brute
 if (isset($options["display"]) AND $options["display"] == 1){
 	echo build_requete($options);
 }
 
+// Ecrit la requete dans un fichier
+if (isset($options["output"]) AND $options["output"] != ""){
+	output_requete($options);
+}
+
+// Arret du script
+if (isset($options["exit"]) AND $options["exit"] == 1){
+	exit;
+}
+
 var_dump($options);
-// brute-force output display exit help
+// a dev => brute-force / help / envoie requete / drop
 ?>
