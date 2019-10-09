@@ -236,26 +236,6 @@ function get_path($url){
 	return ($path);
 }
 
-function build_requete($options){
-	$eof = "\r\n";
-	$raw_requete  = $options["method"]." ".get_path($options["link"]). "HTTP/1.1".$eof;
-	$raw_requete .= "Host: ".get_host($options["link"]).$eof;
-	if (isset($options["header"]) AND $options["header"]){
-		$raw_requete .= $options["header"];
-	}else{
-		$raw_requete .= "Content-type: application/x-www-form-urlencoded".$eof;
-		$raw_requete .= "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".$eof;
-		$raw_requete .= "Accept-Language: en-US,en;q=0.5".$eof;
-		if (isset($options["user-agent"]) AND $options["user-agent"] != ""){
-			$raw_requete .= "User-agent".$options["user-agent"].$eof;
-		}
-		if (isset($options["referer"]) AND $options["referer"] != ""){
-			$raw_requete .= "Referer".$options["referer"].$eof;
-		}
-	}
-	return ($raw_requete);
-}
-
 function output_requete($options){
 	$file = fopen($options["output"], "w+");
 	fputs($file, build_requete($options));
@@ -264,21 +244,13 @@ function output_requete($options){
 
 function debug($vars){
 	echo "SERVER\n";
-	foreach ($vars["_SERVER"] as $key => $value){
-		echo "$key => $value\n";
-	}
+	var_dump($vars["_SERVER"]);
 	echo "\nGET\n";
-	foreach ($vars["_GET"] as $key => $value){
-		echo "$key => $value\n";
-	}
+	var_dump($vars["_GET"]);
 	echo "\nPOST\n";
-	foreach ($vars["_POST"] as $key => $value){
-		echo "$key => $value\n";
-	}
+	var_dump($vars["_POST"]);
 	echo "\nCOOKIE\n";
-	foreach ($vars["_COOKIE"] as $key => $value){
-		echo "$key => $value\n";
-	}
+	var_dump($vars["_COOKIE"]);
 	exit;
 }
 
@@ -306,38 +278,62 @@ function setup_method($options){
 	}
 }
 
-function requete_context($method, $header, $content){
+function build_requete($options){
+	$eof = "\r\n";
+	$raw_requete  = $options["method"]." ".get_path($options["link"]). "HTTP/1.1".$eof;
+	$raw_requete .= "Host: ".get_host($options["link"]).$eof;
+	return ($raw_requete.build_header($options));
+}
+
+function build_header($options){
+	$eof = "\r\n";
+	if (isset($options["header"]) AND $options["header"]){
+		$raw_requete = $options["header"];
+	}else{
+		$raw_requete = "Content-type: application/x-www-form-urlencoded".$eof;
+		$raw_requete .= "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8".$eof;
+		$raw_requete .= "Accept-Language: en-US,en;q=0.5".$eof;
+		if (isset($options["user-agent"]) AND $options["user-agent"] != ""){
+			$raw_requete .= "User-agent".$options["user-agent"].$eof;
+		}
+		if (isset($options["referer"]) AND $options["referer"] != ""){
+			$raw_requete .= "Referer".$options["referer"].$eof;
+		}
+	}
+	return ($raw_requete);
+}
+
+function requete_context($options){
 
 	$context	= array();
 	$list_method	= array("GET", "POST", "PUT", "HEAD", "DELETE", "PATCH", "OPTIONS");
 
+	$content	= $options["content"];
+
 		// METHOD //
-	if ($method == ""){
+	if (!isset($options["method"]) OR $options["method"] == ""){
 		erreur("Erreur: method invalide");
 	}
-	if (!array_key_exists($list_mehtod, $method)){
-		echo "Avertissement: method \"$method\" inconnu\n";
+	if (!array_key_exists($list_mehtod, $options["method"])){
+		echo "Avertissement: methode \"".$options["method"]."\" inconnue\n";
 	}
-	array_push($context['method'], $method);
+	array_push($context['method'], $options["method"]);
 
 		// HEADER //
-	if ($header == ""){
-		errueur("Erreur: Header invalide");
-	}
-	array_push($context['header'], $header);
+	array_push($context['header'], build_header($options));
 
 		// CONTENT //
-	if ($method == "POST" AND $content == ""){
+	if ($options["method"] == "POST" AND (!isset($options["content"]) XOR $options["content"] == "")){
 		erreur("Erreur: Content manquant");
 	}
-	if ($content != ""){
-		array_push($context['content'], $content);
+	if (isset($options["content"]) AND $options["content"] != ""){
+		array_push($context['content'], $options["content"]);
 	}
 	return ($context);
 }
 
 function send_requete($url, $context){
-	if (verif_url($url) == "" OR !is_array($content) OR empty($content)){
+	if (verif_url($url) == "" OR !is_array($context) OR empty($context)){
 		erreur("Erreur: Context invalide");
 	}
 	return (file_get_contents($url, FALSE, stream_context_create(array('http' => array($context)))));
@@ -383,8 +379,6 @@ if (isset($options["exit"]) AND $options["exit"] == 1){
 }
 
 // Envoi de la requete
-//send_requete($options["link"], requete_context($options["method"], ));
+send_requete($options["link"], requete_context($options));
 
-var_dump($options);
-// a dev => brute-force / help / envoie requete
 ?>
