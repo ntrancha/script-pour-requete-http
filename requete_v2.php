@@ -305,17 +305,12 @@ function build_header($options){
 
 function requete_context($options){
 
-	$context	= array();
-	$list_method	= array("GET", "POST", "PUT", "HEAD", "DELETE", "PATCH", "OPTIONS");
-
-	$content	= $options["content"];
+	$context = array();
+	$content = $options["content"];
 
 		// METHOD //
 	if (!isset($options["method"]) OR $options["method"] == ""){
 		erreur("Erreur: method invalide");
-	}
-	if (!array_key_exists($list_mehtod, $options["method"])){
-		echo "Avertissement: methode \"".$options["method"]."\" inconnue\n";
 	}
 	array_push($context['method'], $options["method"]);
 
@@ -379,6 +374,6 @@ if (isset($options["exit"]) AND $options["exit"] == 1){
 }
 
 // Envoi de la requete
-send_requete($options["link"], requete_context($options));
+echo send_requete($options["link"], requete_context($options));
 
 ?>
